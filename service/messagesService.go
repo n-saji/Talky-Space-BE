@@ -6,8 +6,8 @@ import (
 	"talky-space-be/models"
 )
 
-func (s *Service) CreateMessage(req *dtos.CreateMessageRequest) (*dtos.MessageResponse, error) {
-	if (req.SenderID == "" || req.RecipientID == "") || req.Content == "" {
+func (s *Service) InitiateNewChat(req *dtos.CreateMessageRequest) (*dtos.MessageResponse, error) {
+	if req.SenderID == "" || req.RecipientID == "" {
 		return nil, errors.New("invalid request data")
 	}
 	if req.ChatroomID != "" {
@@ -66,4 +66,16 @@ func (s *Service) StoreMessage(req *dtos.CreateMessageRequest) error {
 		return err
 	}
 	return nil
+}
+
+func (s *Service) FetchMessagesByChatroomID(chatroomID string) ([]*dtos.MessageResponse, error) {
+	messages, err := s.daos.GetMessagesByChatroomID(chatroomID)
+	if err != nil {
+		return nil, err
+	}
+	var messageResponses []*dtos.MessageResponse
+	for _, msg := range messages {
+		messageResponses = append(messageResponses, models.MessageModelToMessageResponse(&msg))
+	}
+	return messageResponses, nil
 }

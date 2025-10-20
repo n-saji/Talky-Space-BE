@@ -90,3 +90,14 @@ func (s *Service) CreateChatroomForUsers(userID1, userID2 string) (*dtos.Chatroo
 	}
 	return models.ChatroomModelToChatroomResponse(chatroom), nil
 }
+
+func (s *Service) FindChatroomByUsers(userID1, userID2 string) (*dtos.ChatroomResponse, error) {
+	chatroom, err := s.daos.CheckChatroomExistForSenderReceiver(userID1, userID2)
+	if err != nil {
+		return nil, err
+	}
+	if chatroom == nil {
+		return nil, errors.New("chatroom not found for the given users")
+	}
+	return models.ChatroomModelToChatroomResponse(chatroom), nil
+}

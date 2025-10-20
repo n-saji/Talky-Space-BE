@@ -39,7 +39,7 @@ func (d *Daos) CheckChatroomExistForSenderReceiver(senderID string, receiverID s
 		WHERE c.is_group = false AND cm1.user_id = ? AND cm2.user_id = ? LIMIT 1`, senderID, receiverID).Scan(&chatroom).Error; err != nil {
 		return nil, err
 	}
-	if chatroom.ID.String() == "" {
+	if chatroom != nil && chatroom.ID.String() == "" {
 		return nil, nil
 	}
 

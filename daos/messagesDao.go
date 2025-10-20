@@ -12,7 +12,7 @@ func (d *Daos) CreateMessage(req models.Messages) (*models.Messages, error) {
 
 func (d *Daos) GetMessagesByChatroomID(chatroomID string) ([]models.Messages, error) {
 	var messages []models.Messages
-	result := d.dbConn.Where("chatroom_id = ?", chatroomID).Find(&messages)
+	result := d.dbConn.Where("chatroom_id = ?", chatroomID).Find(&messages).Order("created_at")
 	if result.Error != nil {
 		return nil, result.Error
 	}

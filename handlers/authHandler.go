@@ -28,13 +28,12 @@ func (h *Handler) AuthenticationChannel(rg *gin.RouterGroup) {
 
 			// Set refresh token in cookie (secure, HTTP-only)
 			if rememberMe {
-				// c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/", "", true, true) // 7 days
 				http.SetCookie(c.Writer, &http.Cookie{
 					Name:     "refresh_token",
 					Value:    refreshToken,
 					Path:     "/",
 					HttpOnly: true,
-					Secure:   false,
+					Secure:   true,
 					MaxAge:   7 * 24 * 3600,
 					SameSite: http.SameSiteNoneMode,
 				})
@@ -44,7 +43,7 @@ func (h *Handler) AuthenticationChannel(rg *gin.RouterGroup) {
 					Value:    refreshToken,
 					Path:     "/",
 					HttpOnly: true,
-					Secure:   false,
+					Secure:   true,
 					MaxAge:   0,
 					SameSite: http.SameSiteNoneMode,
 				})
@@ -55,8 +54,8 @@ func (h *Handler) AuthenticationChannel(rg *gin.RouterGroup) {
 				Value:    accessToken,
 				Path:     "/",
 				HttpOnly: true,
-				Secure:   false,
-				MaxAge:   15 * 60,
+				Secure:   true,
+				MaxAge:   15*60,
 				SameSite: http.SameSiteNoneMode,
 			})
 
@@ -94,6 +93,15 @@ func (h *Handler) AuthenticationChannel(rg *gin.RouterGroup) {
 
 			// Update refresh token cookie
 			c.SetCookie("refresh_token", newRefresh, 7*24*3600, "/", "", true, true)
+			http.SetCookie(c.Writer, &http.Cookie{
+				Name:     "access_token",
+				Value:    accessToken,
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   true,
+				MaxAge:   15*60,
+				SameSite: http.SameSiteNoneMode,
+			})
 			c.JSON(http.StatusOK, gin.H{"access_token": accessToken})
 		})
 

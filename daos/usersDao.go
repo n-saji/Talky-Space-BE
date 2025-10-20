@@ -48,3 +48,12 @@ func (d *Daos) DeleteUser(user *models.User) error {
 	}
 	return nil
 }
+
+func (d *Daos) LookUpUser(query string) ([]*models.User, error) {
+	var users []*models.User
+	pattern := "%" + query + "%"
+	if err := d.dbConn.Where("username ILIKE ? OR email ILIKE ? OR phone_number ILIKE ?", pattern, pattern, pattern).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}

@@ -42,6 +42,7 @@ func (h *Handler) GetRouter() *gin.Engine {
 		// Add protected routes here
 		h.RoutingMessage(protected)
 		h.RoutingWebSockets(protected)
+		h.ChatroomChannel(protected)
 	}
 
 	return router

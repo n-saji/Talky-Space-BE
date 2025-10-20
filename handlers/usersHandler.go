@@ -19,6 +19,7 @@ func (h *Handler) RoutingUser(rg *gin.RouterGroup) {
 			protected.GET("/me", h.GetUser)
 			protected.PUT("/update", h.UpdateUser)
 			protected.DELETE("/delete", h.DeleteUser)
+			protected.GET("/look-up", h.LookUpUser)
 		}
 	}
 }
@@ -81,4 +82,18 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
 	c.SetCookie("access_token", "", -1, "/", "", true, true)
 	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+}
+
+func (h *Handler) LookUpUser(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'q' is required"})
+		return
+	}
+	users, err := h.service.LookUpUser(query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, users)
 }
