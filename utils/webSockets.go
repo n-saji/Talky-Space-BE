@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"talky-space-be/config"
 	"talky-space-be/daos"
 	"talky-space-be/dtos"
@@ -119,7 +118,6 @@ func (c *Client) ReadPump() {
 		if err != nil {
 			break
 		}
-		log.Println("Received message from client:", string(msg))
 		HubInstance.Broadcast <- msg
 	}
 }

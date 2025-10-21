@@ -86,11 +86,16 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 
 func (h *Handler) LookUpUser(c *gin.Context) {
 	query := c.Query("q")
+	id, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
 	if query == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'q' is required"})
 		return
 	}
-	users, err := h.service.LookUpUser(query)
+	users, err := h.service.LookUpUser(query, id.(string))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

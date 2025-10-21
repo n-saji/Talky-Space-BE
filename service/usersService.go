@@ -69,13 +69,16 @@ func (s *Service) DeleteUser(id string) error {
 	return nil
 }		
 
-func (s *Service) LookUpUser(query string) ([]*dtos.UserResponse, error) {
+func (s *Service) LookUpUser(query string, skipUser string) ([]*dtos.UserResponse, error) {
 	users, err := s.daos.LookUpUser(query)
 	if err != nil {
 		return nil, errors.New("failed to look up users: " + err.Error())
 	}
 	var userResponses []*dtos.UserResponse
 	for _, user := range users {
+		if user.Id.String() == skipUser {
+			continue
+		}
 		userResponses = append(userResponses, models.UserModelToUserResponse(user))
 	}
 	return userResponses, nil
