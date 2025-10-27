@@ -82,18 +82,17 @@ func (h *Hub) Run() {
 						continue
 					}
 
-					messageModel := models.CreateMessageRequestToMessageModel(&dtos.CreateMessageRequest{
-						ChatroomID:  payload.ChatroomID.String(),
-						SenderID:    payload.SenderID.String(),
-						Content:     payload.Content,
-						RecipientID: payload.RecipientID.String(),
-					})
-					_, err = db.CreateMessage(*messageModel)
-					if err != nil {
-						fmt.Println("Error storing message:", err)
-					}
-
 					if member.UserID == payload.SenderID {
+						messageModel := models.CreateMessageRequestToMessageModel(&dtos.CreateMessageRequest{
+							ChatroomID:  payload.ChatroomID.String(),
+							SenderID:    payload.SenderID.String(),
+							Content:     payload.Content,
+							RecipientID: payload.RecipientID.String(),
+						})
+						_, err = db.CreateMessage(*messageModel)
+						if err != nil {
+							fmt.Println("Error storing message:", err)
+						}
 						continue
 					}
 					conn.Send <- message
