@@ -26,12 +26,13 @@ type Hub struct {
 }
 
 type MessagePayload struct {
-	Type       string    `json:"type"`
-	ChatroomID uuid.UUID `json:"chatroom_id"`
-	SenderID   uuid.UUID `json:"sender_id"`
-	Content    string    `json:"content"`
-	CreatedAt  int64     `json:"created_at"`
-	Source     string    `json:"source,omitempty"`
+	Type        string    `json:"type"`
+	ChatroomID  uuid.UUID `json:"chatroom_id"`
+	SenderID    uuid.UUID `json:"user_id"`
+	RecipientID uuid.UUID `json:"recipient_id"`
+	Content     string    `json:"content"`
+	CreatedAt   int64     `json:"created_at"`
+	Source      string    `json:"source,omitempty"`
 }
 
 // Exported Hub instance
@@ -56,13 +57,13 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.Broadcast:
-			for _, a := range h.Clients {
-				fmt.Println(a.UserID)
-			}
 			var payload MessagePayload
 			if err := json.Unmarshal(message, &payload); err != nil {
+				fmt.Println("Error unmarshaling message:", err)
 				continue
 			}
+
+			fmt.Println("message from socket: ", payload)
 
 			dbConn := config.DBInit()
 			db := daos.New(dbConn)
@@ -73,12 +74,8 @@ func (h *Hub) Run() {
 			}
 
 			for _, member := range members {
-				if member.UserID == payload.SenderID {
-					continue
-				}
 
 				if conn, ok := h.Clients[member.UserID]; ok {
-					conn.Send <- message
 
 					if payload.Source == "server" {
 						// Skip storing message if it's from server to avoid duplication
@@ -89,12 +86,17 @@ func (h *Hub) Run() {
 						ChatroomID:  payload.ChatroomID.String(),
 						SenderID:    payload.SenderID.String(),
 						Content:     payload.Content,
-						RecipientID: member.UserID.String(),
+						RecipientID: payload.RecipientID.String(),
 					})
 					_, err = db.CreateMessage(*messageModel)
 					if err != nil {
 						fmt.Println("Error storing message:", err)
 					}
+
+					if member.UserID == payload.SenderID {
+						continue
+					}
+					conn.Send <- message
 				}
 			}
 		}
