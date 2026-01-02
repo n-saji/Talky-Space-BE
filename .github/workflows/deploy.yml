@@ -1,0 +1,59 @@
+name: Build & Deploy Go App to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 🔐 Login to Docker Hub
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 🐳 Build & Push Image
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/go-app
+          TAG=${{ github.sha }}
+
+          docker build -t $IMAGE:$TAG -t $IMAGE:latest .
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:latest
+
+      # 🔑 Setup SSH
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      # 🚀 Deploy on EC2
+      - name: Deploy on EC2
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+            set -e
+
+            IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/go-app:latest
+
+            docker pull \$IMAGE
+
+            docker stop go-app || true
+            docker rm go-app || true
+
+            docker run -d \
+              --name go-app \
+              -p 80:8080 \
+              --restart unless-stopped \
+              \$IMAGE
+          EOF
