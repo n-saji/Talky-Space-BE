@@ -39,7 +39,16 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            set -e
+            mkdir -p ~/app
+            cat << 'EOF' > ~/app/.env
+            REFRESH_TOKEN_SECRET=${{ secrets.REFRESH_TOKEN_SECRET }}
+            ACCESS_TOKEN_SECRET=${{ secrets.ACCESS_TOKEN_SECRET }}
+            DB_URL=${{ secrets.DB_URL }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            PORT=${{ secrets.PORT }}
+            EOF
+
+
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/go-app:latest
             docker stop go-app || true
             docker rm go-app || true
