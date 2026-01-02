@@ -30,13 +30,6 @@ jobs:
           docker push $IMAGE:$TAG
           docker push $IMAGE:latest
 
-      # 🔑 Setup SSH
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
     
         # 🚀 Deploy to EC2
       - name: SSH to EC2 and deploy
@@ -47,8 +40,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/go-app:latest
-            docker pull $IMAGE
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/go-app:latest
             docker stop go-app || true
             docker rm go-app || true
-            docker run -d --name go-app -p 80:8080 --restart unless-stopped $IMAGE
+            docker run -d --name go-app -p 80:8080 --restart unless-stopped ${{ secrets.DOCKERHUB_USERNAME }}/go-app:latest
