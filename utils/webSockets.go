@@ -45,6 +45,9 @@ var HubInstance = &Hub{
 
 // Start the hub in background (call this in main.go)
 func (h *Hub) Run() {
+	dbConn := config.DBInit()
+	db := daos.New(dbConn)
+	defer config.CloseDB(dbConn)
 	for {
 		select {
 		case client := <-h.Register:
@@ -65,8 +68,6 @@ func (h *Hub) Run() {
 
 			fmt.Println("message from socket: ", payload)
 
-			dbConn := config.DBInit()
-			db := daos.New(dbConn)
 			members, err := db.GetChatroomMembersByChatroomID(payload.ChatroomID.String())
 			if err != nil {
 				fmt.Println("Error:", err)
@@ -100,6 +101,7 @@ func (h *Hub) Run() {
 			}
 		}
 	}
+
 }
 
 // Add helper function to broadcast directly
