@@ -52,4 +52,9 @@ jobs:
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/go-app:latest
             docker stop go-app || true
             docker rm go-app || true
-            docker run -d --name go-app -p 80:8080 --restart unless-stopped ${{ secrets.DOCKERHUB_USERNAME }}/go-app:latest
+            docker run -d \
+              --name go-app \
+              -p 80:8080 \
+              --restart unless-stopped \
+              -v ~/app/.env:/app/.env \
+              ${{ secrets.DOCKERHUB_USERNAME }}/go-app:latest
