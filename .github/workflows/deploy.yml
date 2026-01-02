@@ -37,23 +37,18 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      # 🚀 Deploy on EC2
-      - name: Deploy on EC2
-        run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+    
+        # 🚀 Deploy to EC2
+      - name: SSH to EC2 and deploy
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
             set -e
-
-            IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/go-app:latest
-
-            docker pull \$IMAGE
-
+            IMAGE=my-dockerhub-user/go-app:latest
+            docker pull $IMAGE
             docker stop go-app || true
             docker rm go-app || true
-
-            docker run -d \
-              --name go-app \
-              -p 80:8080 \
-              --restart unless-stopped \
-              \$IMAGE
-          EOF
+            docker run -d --name go-app -p 80:8080 --restart unless-stopped $IMAGE
