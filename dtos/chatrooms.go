@@ -22,3 +22,13 @@ type UpdateChatroomRequest struct {
 	Name        string `json:"name" binding:"omitempty"`
 	Description string `json:"description" binding:"omitempty"`
 }
+
+type ChatroomInfo struct {
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	IsGroup     bool   `json:"is_group"`
+	CreatedBy   string `json:"created_by"`
+	CreatedAt   int64  `json:"created_at"`
+	UpdatedAt   int64  `json:"updated_at"`
+}

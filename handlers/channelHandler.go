@@ -1,29 +1,28 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
-	"talky-space-be/middleware"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
 
-func (h *Handler) RoutingChannel(rc *gin.RouterGroup) {
-	rc.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "OK",
-		})
-	})
+func (h *Handler) RoutingChannel(r chi.Router) {
+	r.Get("/{id}", h.GetChannelByID)
+	r.Post("/", h.CreateChannel)
+}
 
-	channel := rc.Group("/channel")
-	{
-		protected := channel.Group("/")
-		protected.Use(middleware.AuthMiddleware())
+func (h *Handler) GetChannelByID(w http.ResponseWriter, r *http.Request) {
+	_ = chi.URLParam(r, "id")
+	writeJSON(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented"})
+}
 
-		protected.GET("/:id", func(c *gin.Context) {
-			// Handle getting channel by ID
-		})
-		protected.POST("/", func(c *gin.Context) {
-			// Handle creating a new channel
-		})
+func (h *Handler) CreateChannel(w http.ResponseWriter, r *http.Request) {
+	var payload map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request data"})
+		return
 	}
+
+	writeJSON(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented"})
 }

@@ -2,16 +2,14 @@ package service
 
 import (
 	"talky-space-be/daos"
-
-	"gorm.io/gorm"
 )
 
 type Service struct {
-	daos *daos.Daos
+	daos *daos.PgxDao
 }
 
-func New(dbConn *gorm.DB) *Service {
+func New(Dao *daos.PgxDao) *Service {
 	return &Service{
-		daos: daos.New(dbConn),
+		daos: Dao,
 	}
 }

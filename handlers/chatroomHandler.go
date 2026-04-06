@@ -1,58 +1,78 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
+	"talky-space-be/global"
+	"talky-space-be/middleware"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func (h *Handler) ChatroomChannel(rg *gin.RouterGroup) {
-	chatroomGrp := rg.Group("/chatrooms")
-	{
-		chatroomGrp.POST("/", h.CreateChatroom)
-		chatroomGrp.GET("/", h.GetUserChatrooms)
-		chatroomGrp.GET("/:chatroom_id", h.GetChatroomDetails)
-		chatroomGrp.PUT("/:chatroom_id", h.UpdateChatroom)
-		chatroomGrp.DELETE("/:chatroom_id", h.DeleteChatroom)
-		chatroomGrp.GET("/find-by-users/user1/:uid1/user2/:uid2", h.FindChatroomByUsers)
-	}
+func (h *Handler) ChatroomChannel(r chi.Router) {
+	r.Post("/", h.CreateChatroom)
+	r.Get("/", h.GetUserChatrooms)
+	r.Get("/{chatroom_id}", h.GetChatroomDetails)
+	r.Put("/{chatroom_id}", h.UpdateChatroom)
+	r.Delete("/{chatroom_id}", h.DeleteChatroom)
+	r.Get("/find-by-users/user1/{uid1}/user2/{uid2}", h.FindChatroomByUsers)
+	r.Get("/user", h.FetchAllChatrooms)
 }
 
-func (h *Handler) CreateChatroom(c *gin.Context) {
+func (h *Handler) CreateChatroom(w http.ResponseWriter, r *http.Request) {
 	// Implementation for creating a chatroom
+	writeJSON(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented"})
 }
 
-func (h *Handler) GetUserChatrooms(c *gin.Context) {
+func (h *Handler) GetUserChatrooms(w http.ResponseWriter, r *http.Request) {
 	// Implementation for retrieving user's chatrooms
-
+	writeJSON(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented"})
 }
 
-func (h *Handler) GetChatroomDetails(c *gin.Context) {
+func (h *Handler) GetChatroomDetails(w http.ResponseWriter, r *http.Request) {
 	// Implementation for retrieving chatroom details
-	chatroom_id := c.Param("chatroom_id")
+	chatroomID := chi.URLParam(r, "chatroom_id")
 
-	res, err := h.service.GetChatroomByID(chatroom_id)
+	res, err := h.service.GetChatroomByID(r.Context(), chatroomID)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	c.JSON(200, res)
+	writeJSON(w, http.StatusOK, res)
 }
 
-func (h *Handler) UpdateChatroom(c *gin.Context) {
+func (h *Handler) UpdateChatroom(w http.ResponseWriter, r *http.Request) {
 	// Implementation for updating a chatroom
+	writeJSON(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented"})
 }
 
-func (h *Handler) DeleteChatroom(c *gin.Context) {
+func (h *Handler) DeleteChatroom(w http.ResponseWriter, r *http.Request) {
 	// Implementation for deleting a chatroom
+	writeJSON(w, http.StatusNotImplemented, map[string]string{"message": "Not implemented"})
 }
 
-func (h *Handler) FindChatroomByUsers(c *gin.Context) {
-	uid1 := c.Param("uid1")
-	uid2 := c.Param("uid2")
+func (h *Handler) FindChatroomByUsers(w http.ResponseWriter, r *http.Request) {
+	uid1 := chi.URLParam(r, "uid1")
+	uid2 := chi.URLParam(r, "uid2")
 
-	res, err := h.service.FindChatroomByUsers(uid1, uid2)
+	res, err := h.service.FindChatroomByUsers(r.Context(), uid1, uid2)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	c.JSON(200, res)
+	writeJSON(w, http.StatusOK, res)
+}
+
+func (h *Handler) FetchAllChatrooms(w http.ResponseWriter, r *http.Request) {
+	// Implementation for fetching all chatrooms
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		writeError(w, http.StatusUnauthorized, global.CodeUnauthorized, "Unauthorized")
+		return
+	}
+	chatrooms, err := h.service.FetchAllChatroomsForUser(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, global.CodeInternal, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, chatrooms)
 }

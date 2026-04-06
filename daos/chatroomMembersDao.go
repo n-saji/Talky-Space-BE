@@ -1,34 +1,59 @@
 package daos
 
-import "talky-space-be/models"
+import (
+	"context"
+	"talky-space-be/models"
+)
 
-func (d *Daos) CreateChatroomMember(chatroomMember *models.ChatroomMember) error {
-	if err := d.dbConn.Create(chatroomMember).Error; err != nil {
+func (d *PgxDao) CreateChatroomMember(ctx context.Context, chatroomMember *models.ChatroomMember) error {
+	query := `INSERT INTO chatroom_members (id,chatroom_id, user_id, joined_at) VALUES ($1, $2, $3, $4)`
+
+	if _, err := d.pool.Exec(ctx, query, chatroomMember.Id, chatroomMember.ChatroomID, chatroomMember.UserID, chatroomMember.JoinedAt); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *Daos) GetChatroomMembersByChatroomID(chatroomID string) ([]models.ChatroomMember, error) {
+func (d *PgxDao) GetChatroomMembersByChatroomID(ctx context.Context, chatroomID string) ([]models.ChatroomMember, error) {
 	var members []models.ChatroomMember
-	if err := d.dbConn.Where("chatroom_id = ?", chatroomID).Find(&members).Error; err != nil {
+	query := `SELECT id, chatroom_id, user_id, joined_at FROM chatroom_members WHERE chatroom_id = $1`
+
+	rows, err := d.pool.Query(ctx, query, chatroomID)
+	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var member models.ChatroomMember
+		if err := rows.Scan(&member.Id, &member.ChatroomID, &member.UserID, &member.JoinedAt); err != nil {
+			return nil, err
+		}
+		members = append(members, member)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return members, nil
 }
 
-func (d *Daos) DeleteChatroomMember(chatroomID string, userID string) error {
-	if err := d.dbConn.Delete(&models.ChatroomMember{}, "chatroom_id = ? AND user_id = ?", chatroomID, userID).Error; err != nil {
+func (d *PgxDao) DeleteChatroomMember(ctx context.Context, chatroomID string, userID string) error {
+	query := `DELETE FROM chatroom_members WHERE chatroom_id = $1 AND user_id = $2`
+
+	if _, err := d.pool.Exec(ctx, query, chatroomID, userID); err != nil {
 		return err
 	}
 	return nil
-}	
+}
 
-func (d *Daos) IsUserInChatroom(chatroomID string, userID string) (bool, error) {
+func (d *PgxDao) IsUserInChatroom(ctx context.Context, chatroomID string, userID string) (bool, error) {
+	query := `SELECT COUNT(*) FROM chatroom_members WHERE chatroom_id = $1 AND user_id = $2`
+
 	var count int64
-	if err := d.dbConn.Model(&models.ChatroomMember{}).Where("chatroom_id = ? AND user_id = ?", chatroomID, userID).Count(&count).Error; err != nil {
+	if err := d.pool.QueryRow(ctx, query, chatroomID, userID).Scan(&count); err != nil {
 		return false, err
 	}
 	return count > 0, nil
 }
-

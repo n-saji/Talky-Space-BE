@@ -1,13 +1,13 @@
 package daos
 
 import (
-	"gorm.io/gorm"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Daos struct {
-	dbConn *gorm.DB
+type PgxDao struct {
+	pool *pgxpool.Pool
 }
 
-func New(conn *gorm.DB) *Daos {
-	return &Daos{dbConn: conn}
+func NewPgxDao(pool *pgxpool.Pool) *PgxDao {
+	return &PgxDao{pool: pool}
 }

@@ -1,104 +1,101 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"talky-space-be/dtos"
 	"talky-space-be/middleware"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
 
-func (h *Handler) RoutingUser(rg *gin.RouterGroup) {
-	user := rg.Group("/users")
-	{
-		user.POST("/register", h.CreateUser)
-
-		protected := user.Group("/")
-		protected.Use(middleware.AuthMiddleware())
-		{
-			protected.GET("/me", h.GetUser)
-			protected.PUT("/update", h.UpdateUser)
-			protected.DELETE("/delete", h.DeleteUser)
-			protected.GET("/look-up", h.LookUpUser)
-		}
-	}
+func (h *Handler) RoutingUser(r chi.Router) {
+	r.Post("/register", h.CreateUser)
+	r.Get("/me", h.GetUser)
+	r.Put("/update", h.UpdateUser)
+	r.Delete("/delete", h.DeleteUser)
+	r.Get("/look-up", h.LookUpUser)
 }
 
-func (h *Handler) CreateUser(c *gin.Context) {
+func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req dtos.CreateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 		return
 	}
-	if err := h.service.CreateUser(&req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.service.CreateUser(r.Context(), &req); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
+	writeJSON(w, http.StatusCreated, map[string]string{"message": "User created successfully"})
 }
 
-func (h *Handler) GetUser(c *gin.Context) {
-	id, exists := c.Get("user_id")
+func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
+	id, exists := middleware.UserIDFromContext(r.Context())
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
 	}
-	user, err := h.service.GetUserByID(id.(string))
+	user, err := h.service.GetUserByID(r.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "User not found"})
 		return
 	}
-	c.JSON(http.StatusOK, user)
+	writeJSON(w, http.StatusOK, user)
 }
 
-func (h *Handler) UpdateUser(c *gin.Context) {
-	id, exists := c.Get("user_id")
+func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	id, exists := middleware.UserIDFromContext(r.Context())
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
 	}
 	var req dtos.UpdateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 		return
 	}
-	if err := h.service.UpdateUser(id.(string), &req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.service.UpdateUser(r.Context(), id, &req); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
+	writeJSON(w, http.StatusOK, map[string]string{"message": "User updated successfully"})
 }
 
-func (h *Handler) DeleteUser(c *gin.Context) {
-	id, exists := c.Get("user_id")
+func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	id, exists := middleware.UserIDFromContext(r.Context())
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
 	}
-	if err := h.service.DeleteUser(id.(string)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.service.DeleteUser(r.Context(), id); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
-	c.SetCookie("access_token", "", -1, "/", "", true, true)
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: "", Path: "/", Secure: true, HttpOnly: true, MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: "", Path: "/", Secure: true, HttpOnly: true, MaxAge: -1})
+	writeJSON(w, http.StatusOK, map[string]string{"message": "User deleted successfully"})
 }
 
-func (h *Handler) LookUpUser(c *gin.Context) {
-	query := c.Query("q")
-	id, exists := c.Get("user_id")
+func (h *Handler) LookUpUser(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	id, exists := middleware.UserIDFromContext(r.Context())
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
 	}
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Query parameter 'q' is required"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Query parameter 'q' is required"})
 		return
 	}
-	users, err := h.service.LookUpUser(query, id.(string))
+	users, err := h.service.LookUpUser(r.Context(), query, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, users)
+	writeJSON(w, http.StatusOK, users)
 }

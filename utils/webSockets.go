@@ -1,15 +1,16 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"talky-space-be/config"
 	"talky-space-be/daos"
 	"talky-space-be/dtos"
 	"talky-space-be/models"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Client struct {
@@ -23,6 +24,7 @@ type Hub struct {
 	Register   chan *Client
 	Unregister chan *Client
 	Broadcast  chan []byte
+	pool       *pgxpool.Pool
 }
 
 type MessagePayload struct {
@@ -44,10 +46,9 @@ var HubInstance = &Hub{
 }
 
 // Start the hub in background (call this in main.go)
-func (h *Hub) Run() {
-	dbConn := config.DBInit()
-	db := daos.New(dbConn)
-	defer config.CloseDB(dbConn)
+func (h *Hub) Run(ctx context.Context) {
+
+	db := daos.NewPgxDao(h.pool)
 	for {
 		select {
 		case client := <-h.Register:
@@ -68,7 +69,7 @@ func (h *Hub) Run() {
 
 			fmt.Println("message from socket: ", payload)
 
-			members, err := db.GetChatroomMembersByChatroomID(payload.ChatroomID.String())
+			members, err := db.GetChatroomMembersByChatroomID(ctx, payload.ChatroomID.String())
 			if err != nil {
 				fmt.Println("Error:", err)
 				continue
@@ -90,7 +91,7 @@ func (h *Hub) Run() {
 							Content:     payload.Content,
 							RecipientID: payload.RecipientID.String(),
 						})
-						_, err = db.CreateMessage(*messageModel)
+						_, err = db.CreateMessage(ctx, *messageModel)
 						if err != nil {
 							fmt.Println("Error storing message:", err)
 						}

@@ -1,17 +1,18 @@
 package service
 
 import (
+	"context"
 	"talky-space-be/dtos"
 	"talky-space-be/models"
 )
 
-func (s *Service) CreateChatroomMember(req dtos.CreateChatroomMemberRequest) error {
+func (s *Service) CreateChatroomMember(ctx context.Context, req dtos.CreateChatroomMemberRequest) error {
 	chatroomMember := models.CreateChatroomMemberRequestToChatroomMemberModel(&req)
-	return s.daos.CreateChatroomMember(chatroomMember)
+	return s.daos.CreateChatroomMember(ctx, chatroomMember)
 }
 
-func (s *Service) GetChatroomMembersByChatroomID(chatroomID string) ([]dtos.ChatroomMemberResponse, error) {
-	members, err := s.daos.GetChatroomMembersByChatroomID(chatroomID)
+func (s *Service) GetChatroomMembersByChatroomID(ctx context.Context, chatroomID string) ([]dtos.ChatroomMemberResponse, error) {
+	members, err := s.daos.GetChatroomMembersByChatroomID(ctx, chatroomID)
 	if err != nil {
 		return nil, err
 	}
@@ -23,10 +24,10 @@ func (s *Service) GetChatroomMembersByChatroomID(chatroomID string) ([]dtos.Chat
 	return memberResponses, nil
 }
 
-func (s *Service) DeleteChatroomMember(chatroomID string, userID string) error {
-	return s.daos.DeleteChatroomMember(chatroomID, userID)
+func (s *Service) DeleteChatroomMember(ctx context.Context, chatroomID string, userID string) error {
+	return s.daos.DeleteChatroomMember(ctx, chatroomID, userID)
 }
 
-func (s *Service) IsUserInChatroom(chatroomID string, userID string) (bool, error) {
-	return s.daos.IsUserInChatroom(chatroomID, userID)
+func (s *Service) IsUserInChatroom(ctx context.Context, chatroomID string, userID string) (bool, error) {
+	return s.daos.IsUserInChatroom(ctx, chatroomID, userID)
 }

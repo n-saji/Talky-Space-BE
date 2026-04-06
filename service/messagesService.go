@@ -1,17 +1,18 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"talky-space-be/dtos"
 	"talky-space-be/models"
 )
 
-func (s *Service) InitiateNewChat(req *dtos.CreateMessageRequest) (*dtos.MessageResponse, error) {
+func (s *Service) InitiateNewChat(ctx context.Context, req *dtos.CreateMessageRequest) (*dtos.MessageResponse, error) {
 	if req.SenderID == "" || req.RecipientID == "" {
 		return nil, errors.New("invalid request data")
 	}
 	if req.ChatroomID != "" {
-		chatroom, err := s.daos.GetChatroomByID(req.ChatroomID)
+		chatroom, err := s.daos.GetChatroomByID(ctx, req.ChatroomID)
 		if err != nil {
 			return nil, err
 		}
@@ -19,12 +20,12 @@ func (s *Service) InitiateNewChat(req *dtos.CreateMessageRequest) (*dtos.Message
 			return nil, errors.New("chatroom not found")
 		}
 	} else {
-		chatroom, err := s.daos.CheckChatroomExistForSenderReceiver(req.SenderID, req.RecipientID)
+		chatroom, err := s.daos.CheckChatroomExistForSenderReceiver(ctx, req.SenderID, req.RecipientID)
 		if err != nil {
 			return nil, err
 		}
 		if chatroom == nil {
-			chatroomRes, err := s.CreateChatroomForUsers(req.SenderID, req.RecipientID)
+			chatroomRes, err := s.CreateChatroomForUsers(ctx, req.SenderID, req.RecipientID)
 			if err != nil {
 				return nil, err
 			}
@@ -35,7 +36,7 @@ func (s *Service) InitiateNewChat(req *dtos.CreateMessageRequest) (*dtos.Message
 		}
 	}
 	messageModel := models.CreateMessageRequestToMessageModel(req)
-	createdMessage, err := s.daos.CreateMessage(*messageModel)
+	createdMessage, err := s.daos.CreateMessage(ctx, *messageModel)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +48,12 @@ func (s *Service) InitiateNewChat(req *dtos.CreateMessageRequest) (*dtos.Message
 	return messageResponse, nil
 }
 
-func (s *Service) StoreMessage(req *dtos.CreateMessageRequest) error {
+func (s *Service) StoreMessage(ctx context.Context, req *dtos.CreateMessageRequest) error {
 	if (req.SenderID == "" || req.RecipientID == "" || req.ChatroomID == "") || req.Content == "" {
 		return errors.New("invalid request data")
 	}
 
-	chatroom, err := s.daos.GetChatroomByID(req.ChatroomID)
+	chatroom, err := s.daos.GetChatroomByID(ctx, req.ChatroomID)
 	if err != nil {
 		return err
 	}
@@ -61,15 +62,15 @@ func (s *Service) StoreMessage(req *dtos.CreateMessageRequest) error {
 	}
 
 	messageModel := models.CreateMessageRequestToMessageModel(req)
-	_, err = s.daos.CreateMessage(*messageModel)
+	_, err = s.daos.CreateMessage(ctx, *messageModel)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Service) FetchMessagesByChatroomID(chatroomID string) ([]*dtos.MessageResponse, error) {
-	messages, err := s.daos.GetMessagesByChatroomID(chatroomID)
+func (s *Service) FetchMessagesByChatroomID(ctx context.Context, chatroomID string) ([]*dtos.MessageResponse, error) {
+	messages, err := s.daos.GetMessagesByChatroomID(ctx, chatroomID)
 	if err != nil {
 		return nil, err
 	}
